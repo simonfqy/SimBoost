@@ -4,7 +4,7 @@ source('utils.R')
 source('Sequential.cv.xgb.R')
 
 #Looptime
-L = 10
+L = 1
 
 parse.mid = function(res) {
   as.numeric(strsplit(gsub('\\s+','',res),',')[[1]][2])
@@ -42,17 +42,21 @@ params = list(nthread = 8, objective = "reg:linear", eta = 0.05,
 for (i in 1:L) {
   cat('Round ',i,'\n')
   set.seed(i)
-  seq.feature = sequential.cv.feature(triplet, d.sim, t.sim, latent.dim,
-                                      nfold, k, threshold, threshold.identity)
-  cv.data = seq.feature[[1]]
-  cv.folds = seq.feature[[2]]
-  
-  save(triplet, d.sim, t.sim, cv.data, cv.folds, file='../data/sequential.cv.feature.mf.davis.rda')
-  
-  
-  davis[[i]] = sequential.mean.cv('../data/sequential.cv.feature.mf.davis.rda',
-                                  '../data/sequential.cv.xgb.mf.davis.rda',
-                                  cutoff = 7, params = params, nrounds = 1000, seed = i)
+  file_name = '../data/sequential.cv.feature.mf.davis.'
+  file_name = paste0(file_name, i, '.rda')
+  if (!file.exists(file_name)){
+    #sink("temporary.txt", append=T, type="output")
+    seq.feature = sequential.cv.feature(triplet, d.sim, t.sim, latent.dim,
+                                        nfold, k, threshold, threshold.identity)
+    #sink()
+    cv.data = seq.feature[[1]]
+    cv.folds = seq.feature[[2]]
+    save(triplet, d.sim, t.sim, cv.data, cv.folds, file=file_name)
+  }
+  out_file_name = '../data/sequential.cv.xgb.mf.davis.'
+  out_file_name = paste0(out_file_name, i, '.rda')
+  davis[[i]] = sequential.mean.cv(file_name, out_file_name,
+                                  cutoff = 7, params = params, nrounds = 50, seed = i)
   res = davis[[i]]
   res = cbind(res[,1],res[,2])
   auc(res[,1],res[,2],7)
@@ -66,7 +70,7 @@ for (i in 1:L) {
 
 save(davis, file='../data/xgb.davis.rda')
 
-sapply(1:10, function(i) auc(davis[[i]][,1],davis[[i]][,2], 7))
+sapply(1:L, function(i) auc(davis[[i]][,1],davis[[i]][,2], 7))
 
 auc = rep(0,L)
 aupr = rep(0,L)
@@ -115,16 +119,19 @@ params = list(nthread = 8, objective = "reg:linear", eta = 0.1,
 for (i in 1:L) {
   cat('Round ',i,'\n')
   set.seed(i)
-  seq.feature = sequential.cv.feature(triplet, d.sim, t.sim, latent.dim,
-                                      nfold, k, threshold, threshold.identity)
-  cv.data = seq.feature[[1]]
-  cv.folds = seq.feature[[2]]
-  
-  save(triplet, d.sim, t.sim, cv.data, cv.folds, file='../data/sequential.cv.feature.mf.metz.rda')
-  
-  metz[[i]] = sequential.mean.cv('../data/sequential.cv.feature.mf.metz.rda',
-                                  '../data/sequential.cv.xgb.mf.metz.rda',
-                                  cutoff = 7.6, params = params, nrounds = 1000, seed = i)
+  file_name = '../data/sequential.cv.feature.mf.metz.'
+  file_name = paste0(file_name, i, '.rda')
+  if (!(file.exists(file_name))){
+    seq.feature = sequential.cv.feature(triplet, d.sim, t.sim, latent.dim,
+                                        nfold, k, threshold, threshold.identity)
+    cv.data = seq.feature[[1]]
+    cv.folds = seq.feature[[2]]
+    save(triplet, d.sim, t.sim, cv.data, cv.folds, file=file_name)
+  }
+  out_file_name = '../data/sequential.cv.xgb.mf.metz.'
+  out_file_name = paste0(out_file_name, i, '.rda')
+  metz[[i]] = sequential.mean.cv(file_name, out_file_name,cutoff = 7.6, 
+                                 params = params, nrounds = 50, seed = i)
   res = metz[[i]]
   res = cbind(res[,1],res[,2])
   auc(res[,1],res[,2],7.6)
@@ -165,7 +172,7 @@ triplet = kiba_triplet
 triplet = triplet[order(triplet[,1]),]
 d.sim = kiba_drug_sim
 t.sim = kiba_target_sim
-res = clear.cold.start(triplet, d.sim, t.sim, 5)
+res = clear.cold.start(triplet, d.sim, t.sim, 2)
 triplet = res[[1]]
 d.sim = res[[2]]
 t.sim = res[[3]]
@@ -185,23 +192,29 @@ params = list(nthread = 8, objective = "reg:linear", eta = 0.2,
 for (i in 1:L) {
   cat('Round ',i,'\n')
   set.seed(i)
-  seq.feature = sequential.cv.feature(triplet, d.sim, t.sim, latent.dim,
-                                      nfold, k, threshold, threshold.identity)
-  cv.data = seq.feature[[1]]
-  cv.folds = seq.feature[[2]]
-  
-  save(triplet, d.sim, t.sim, cv.data, cv.folds, file='../data/sequential.cv.feature.mf.kiba.rda')
-  
-  kiba[[i]] = sequential.mean.cv('../data/sequential.cv.feature.mf.kiba.rda',
-                                 '../data/sequential.cv.xgb.mf.kiba.rda',
-                                 cutoff = 12.1, params = params, nrounds = 1500, seed = i)
+  file_name = '../data/sequential.cv.feature.mf.kiba.'
+  file_name = paste0(file_name, i, '.rda')
+  if (!file.exists(file_name)){
+    
+    seq.feature = sequential.cv.feature(triplet, d.sim, t.sim, latent.dim,
+                                        nfold, k, threshold, threshold.identity)
+    
+    cv.data = seq.feature[[1]]
+    cv.folds = seq.feature[[2]]
+    
+    save(triplet, d.sim, t.sim, cv.data, cv.folds, file=file_name)
+  }
+  out_file_name = '../data/sequential.cv.xgb.mf.kiba.'
+  out_file_name = paste0(out_file_name, i, '.rda')
+  kiba[[i]] = sequential.mean.cv(file_name, out_file_name,cutoff = 4.5, 
+                                 params = params, nrounds = 75, seed = i)
   res = kiba[[i]]
   res = cbind(res[,1],res[,2])
-  auc(res[,1],res[,2],12.1)
+  auc(res[,1],res[,2],4.5)
   write.table(res, file=paste0('kiba_',i,'_cont.txt'), col.names = FALSE,quote = FALSE,
               row.names = FALSE)
   rmse[i] = rmse.fun(res[,1], res[,2])
-  res[,2] = as.numeric(res[,2] > 12.1)
+  res[,2] = as.numeric(res[,2] > 4.5)
   write.table(res, file=paste0('kiba_',i,'_bin.txt'), col.names = FALSE,quote = FALSE,
               row.names = FALSE)
 }
@@ -216,12 +229,12 @@ for (i in 1:L) {
   cat(i,'\n')
   res = read.table(paste0('kiba_',i,'_cont.txt'))
   rmse[i] = rmse.fun(res[,1],res[,2])
-  res = system(paste0('python ../evaluation/evaluate_AUC_complete.py kiba_',i,'_bin.txt'), intern = TRUE)
-  auc[i] = parse.mid(res)
-  res = system(paste0('python ../evaluation/evaluate_AUPR_complete.py kiba_',i,'_bin.txt'), intern = TRUE)
-  aupr[i] = parse.mid(res)
-  res = system(paste0('python ../evaluation/evaluate_CI_complete.py kiba_',i,'_cont.txt'), intern = TRUE)
-  ci[i] = parse.mid(res)
+  res_auc = system(paste0('python ../evaluation/evaluate_AUC_complete.py kiba_',i,'_bin.txt'), intern = TRUE)
+  auc[i] = parse.mid(res_auc)
+  res_aupr = system(paste0('python ../evaluation/evaluate_AUPR_complete.py kiba_',i,'_bin.txt'), intern = TRUE)
+  aupr[i] = parse.mid(res_aupr)
+  res_ci = system(paste0('python ../evaluation/evaluate_CI_complete.py kiba_',i,'_cont.txt'), intern = TRUE)
+  ci[i] = parse.mid(res_ci)
 }
 
 kiba.mean = c(mean(rmse), mean(auc), mean(aupr), mean(ci))

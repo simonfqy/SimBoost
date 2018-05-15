@@ -1,5 +1,7 @@
 require(xgboost)
 source('Feature.heterous.R')
+library(foreach)
+library(doParallel)
 
 similarity.knn = function(sim, k) {
   n = nrow(sim)
@@ -51,25 +53,42 @@ feature.construction = function(train.triplet, test.triplet,
                                 threshold, threshold.identity) {
   #d.sim = similarity.knn(d.sim, 4)
   #t.sim = similarity.knn(t.sim, 5)
-  
+  #browser()
+  time_id_start = Sys.time()
   d.identity = get.identity(train.triplet[,1], train.triplet[,3], 
                             d.sim, threshold.identity)
   colnames(d.identity) = paste0('d.', colnames(d.identity))
+  #browser()
   t.identity = get.identity(train.triplet[,2], train.triplet[,3], 
                             t.sim, threshold.identity)
+
   colnames(t.identity) = paste0('t.', colnames(t.identity))
+  time_id_end = Sys.time()
+  time_id_diff = as.double(difftime(time_id_end, time_id_start, units="secs"))
+  cat(paste0("Time took to get the identity: ", time_id_diff, ' seconds', '\n'))
   
+  time_homo_start = Sys.time()
   d.homo = get.homogeneous.feature(train.triplet[,1], train.triplet[,3],
                                    d.sim, 4, threshold, threshold.identity)
   colnames(d.homo) = paste0('d.', colnames(d.homo))
   t.homo = get.homogeneous.feature(train.triplet[,2], train.triplet[,3],
                                    t.sim, 4, threshold, threshold.identity)
   colnames(t.homo) = paste0('t.', colnames(t.homo))
+  time_homo_end = Sys.time()
+  time_homo_diff = as.double(difftime(time_homo_end, time_homo_start, units="secs"))
+  cat(paste0("Time took to get the homogeneous features: ", time_homo_diff,
+    ' seconds', '\n'))
   
+  time_hetero_start = Sys.time()
   f.hetero = get.heterogenous.feature(train.triplet[,1], train.triplet[,2],
                                       train.triplet[,3], 4,
                                       test.triplet[,1], test.triplet[,2],
                                       d.sim, t.sim, 0.6, 0.6, latent.dim)
+  time_hetero_end = Sys.time()
+  time_hetero_diff = as.double(difftime(time_hetero_end, time_hetero_start, units="secs"))
+  cat(paste0("Time took to get the heterogenous features: ", time_hetero_diff,
+    ' seconds', '\n'))
+
   d.hetero = f.hetero[[2]]
   t.hetero = f.hetero[[3]]
   d.t.hetero = f.hetero[[1]]
@@ -102,30 +121,80 @@ get.cv.fold = function(triplet, nfold) {
   t.dict = sort(unique(triplet[,2]))
   for (tt in t.dict) {
     ind = which(triplet[,2] == tt)
+    if (length(ind) <= 1){
+      stop("Not enough observations to do cv folding!")
+    }
     if (length(unique(label[ind])) == 1) {
+      # If the label for the triplets corresponding to the target tt are identical.
       cat(tt,'\n')
       cat(label[ind],'\n')
       flag = FALSE
       l = 1
+      counter = 0
       while (!flag && l <= length(ind)) {
         ind.x = ind[l]
         dd = triplet[ind.x, 1]
         ind.d = which(triplet[,1] == dd)
-        new.lb = nfold + 1 - label[ind.x]
+        if (length(ind.d) <= 1){
+          stop("Not enough observations to do cv folding!")
+        }
+        d.label = label[ind.d]
+        new.lb = (label[ind.x] + 1) %% nfold
+        new.label = label
+        new.label[ind.x] = new.lb
         new.d.label = label[ind.d]
-        new.d.label[l] = new.lb
-        if (length(unique(new.d.label)) > 1) {
-          flag = TRUE
+        if (length(unique(d.label)) == 1){
+          # The next line would necessarily make flag=TRUE.          
           label[ind.x] = new.lb
-        } else {
+          d.label = label[ind.d]
+        }    
+        else if (length(unique(new.d.label)) > 1) {
+          label[ind.x] = new.lb
+          d.label = label[ind.d]
+        }
+        else{
           l = l+1
         }
+        flag = ((length(unique(d.label)) > 1) && (length(unique(label[ind])) > 1))
+        counter = counter + 1
+        if (counter >= 80000){
+          browser()
+          stop("Dead loop!")
+        }       
       }
       if (!flag) {
+        browser()
         stop("Not able to do cv folding!")
       }
     }
   }
+  # for (tt in t.dict) {
+  #   ind = which(triplet[,2] == tt)
+  #   if (length(unique(label[ind])) == 1) {
+  #     # If the label for the triplets corresponding to the target tt are identical.
+  #     cat(tt,'\n')
+  #     cat(label[ind],'\n')
+  #     flag = FALSE
+  #     l = 1
+  #     while (!flag && l <= length(ind)) {
+  #       ind.x = ind[l]
+  #       dd = triplet[ind.x, 1]
+  #       ind.d = which(triplet[,1] == dd)
+  #       new.lb = nfold + 1 - label[ind.x]
+  #       new.d.label = label[ind.d]
+  #       new.d.label[l] = new.lb
+  #       if (length(unique(new.d.label)) > 1) {
+  #         flag = TRUE
+  #         label[ind.x] = new.lb          
+  #       } else {
+  #         l = l+1
+  #       }
+  #     }
+  #     if (!flag) {
+  #       stop("Not able to do cv folding!")
+  #     }
+  #   }
+  # }
   for (i in 1:nfold) {
     test.fold[[i]] = which(label == i)
   }
@@ -149,22 +218,61 @@ sequential.cv.feature = function(triplet, d.sim, t.sim, latent.dim,
   cv.models = vector(nfold, mode='list')
   cv.preds = rep(0, n)
   cv.data = vector(nfold, mode='list')
-  for (i in 1:nfold) {
+  no_cores = 5
+  registerDoParallel(makeCluster(no_cores))
+  cv.data = foreach(i = 1:nfold) %dopar% {
+    source('Sequential.cv.R') 
+    #sink("temporary.txt", append=T, type = "output")
     cat(i,'\n')
     train.fold = cv.folds[[i]][[1]] # $train.fold
     test.fold = cv.folds[[i]][[2]] # $test.fold
     train.triplet = triplet[train.fold,]
     test.triplet = triplet[test.fold,]
+    time_feature_start = Sys.time()
     features = feature.construction(train.triplet, test.triplet, 
                                     d.sim, t.sim, k, latent.dim,
                                     threshold, threshold.identity)
+    time_feature_end = Sys.time()
+    time_diff = as.double(difftime(time_feature_end, time_feature_start, units="secs"))
+    cat(paste0("Time used in feature.construction(): ", time_diff,
+      ' seconds', '\n'))
+    #sink()
     train.x = features[[1]]
     train.y = features[[3]]
     
     test.x = features[[2]]
     test.y = features[[4]]
-    cv.data[[i]] = list(train.x, test.x, train.y, test.y)
+    #cv.data[[i]] = list(train.x, test.x, train.y, test.y)
+    list(train.x, test.x, train.y, test.y)
   }
+  stopImplicitCluster()
+  registerDoSEQ()
+  # for (i in 1:nfold) {
+  #   source('Sequential.cv.R') 
+  #   #sink("temporary.txt", append=T, type = "output")
+  #   cat(i,'\n')
+  #   train.fold = cv.folds[[i]][[1]] # $train.fold
+  #   test.fold = cv.folds[[i]][[2]] # $test.fold
+  #   train.triplet = triplet[train.fold,]
+  #   test.triplet = triplet[test.fold,]
+  #   time_feature_start = Sys.time()
+  #   features = feature.construction(train.triplet, test.triplet, 
+  #                                   d.sim, t.sim, k, latent.dim,
+  #                                   threshold, threshold.identity)
+  #   time_feature_end = Sys.time()
+  #   time_diff = as.double(difftime(time_feature_end, time_feature_start, units="secs"))
+  #   cat(paste0("Time used in feature.construction(): ", time_diff,
+  #     ' seconds', '\n'))
+  #   #sink()
+  #   train.x = features[[1]]
+  #   train.y = features[[3]]
+    
+  #   test.x = features[[2]]
+  #   test.y = features[[4]]
+  #   cv.data[[i]] = list(train.x, test.x, train.y, test.y)
+  #   #list(train.x, test.x, train.y, test.y)
+  # }
   return(list(cv.data, cv.folds))
 }
 
+ 
