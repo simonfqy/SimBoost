@@ -4,9 +4,14 @@ random.seed(1)
 import subprocess
 
 import numpy as np
+import pdb
 
 from kron_rls import KronRLS
 from cindex_measure import cindex
+
+def neg_rmse(y_true, y_pred):
+  """Computes RMS error."""
+  return -np.sqrt(np.mean((y_true - y_pred)**2))
 
 def get_random_folds(tsize, foldcount):
     folds = []
@@ -98,7 +103,9 @@ def nested_nfold_1_2_3_setting_with_imputation(XD, XT, Y, label_row_inds, label_
         bestparamind = bestparaminds[test_foldind]
         test_fold = folds[test_foldind]
         finalpreds[test_fold] = all_predictions[bestparamind][test_fold]
-        foldperf = measure(Y[label_row_inds, label_col_inds].ravel().T[test_fold], finalpreds.ravel().T[test_fold])
+        label_arr = Y[label_row_inds, label_col_inds].ravel().T[test_fold]
+        pred_arr = finalpreds.ravel().T[test_fold]
+        foldperf = measure(label_arr, pred_arr)
         avgperf += foldperf
     avgperf = avgperf / foldcount
     #perf = measure(Y[label_row_inds, label_col_inds].ravel().T, finalpreds.ravel().T)
@@ -153,8 +160,10 @@ def nested_nfold_setting_4_with_imputation(XD, XT, Y, label_row_inds, label_col_
         bestparam = bestparams[test_foldind]
         test_fold = outer_test_sets[test_foldind]
         finalpreds[:, test_fold] = all_predictions[bestparam][test_fold]
-        foldperf = measure(Y[label_row_inds, label_col_inds].ravel().T[test_fold], finalpreds.ravel().T[test_fold])
+        foldperf = measure(Y[label_row_inds, label_col_inds].ravel().T[test_fold], np.squeeze(np.asarray(
+            finalpreds.ravel().T[test_fold])))
         avgperf += foldperf
+    pdb.set_trace()
     perf = measure(Y[label_row_inds, label_col_inds].ravel().T, finalpreds.ravel().T)
     print bestparams
     #print 'pooled perf', perf
@@ -212,7 +221,7 @@ def general_nfold_cv_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, 
         for foldind in range(len(val_sets)):
             valinds = val_sets[foldind]
             labels = Y[label_row_inds[valinds], label_col_inds[valinds]].ravel().T
-            preds = all_predictions[logrpind].ravel().T[valinds]
+            preds = all_predictions[logrpind].ravel().T[valinds]        
             foldperf = measure(labels, preds)
             avgperf += foldperf
         avgperf /= len(val_sets)
@@ -308,14 +317,15 @@ def davis_regression():
     #concordance index is a value between 0 and 1, 0.5 random baseline
     #generalization of area under ROC curve (AUC) to regression, returns
     #the same value for binary Y-values (e.g. +1,-1)
-    perfmeasure = cindex
+    #perfmeasure = cindex
+    perfmeasure = neg_rmse
     XD, XT, Y = load_davis()
     experiment(XD, XT, Y, perfmeasure)
     
 def davis_classification_cindex():
     #Run the experiment on davis data with binarized outputs
     #and concordance index as performance measure
-    perfmeasure = cindex
+    perfmeasure = cindex    
     XD, XT, Y = load_davis()
     #Same as before, but now we convert this to a binary classification task
     #Now cindex is same as AUC
@@ -372,7 +382,7 @@ def metz_classification_aupr():
     experiment(XD, XT, Y, perfmeasure)
 
 if __name__=="__main__":
-    #davis_regression()
+    davis_regression()
     #davis_classification_cindex()
     #davis_classification_aupr()
     #metz_regression()
