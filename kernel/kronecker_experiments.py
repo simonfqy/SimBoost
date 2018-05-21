@@ -163,8 +163,8 @@ def nested_nfold_setting_4_with_imputation(XD, XT, Y, label_row_inds, label_col_
         foldperf = measure(Y[label_row_inds, label_col_inds].ravel().T[test_fold], np.squeeze(np.asarray(
             finalpreds.ravel().T[test_fold])))
         avgperf += foldperf
-    pdb.set_trace()
-    perf = measure(Y[label_row_inds, label_col_inds].ravel().T, finalpreds.ravel().T)
+    #pdb.set_trace()
+    perf = measure(Y[label_row_inds, label_col_inds].ravel().T, np.squeeze(np.asarray(finalpreds.ravel().T)))
     print bestparams
     #print 'pooled perf', perf
     #print 'averaged perf', avgperf / len(outer_test_sets)
