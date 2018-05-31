@@ -9,7 +9,9 @@ dim(compound_info)[1]
 dim(target_info)[1]
 dim(davis_quadruplet)[1]/(dim(compound_info)[1]*dim(target_info)[1])
 
-compound_sim = read.csv(paste(davis_dir,"tanimoto_cluster.csv", sep=""))
+# The file "tanimoto_cluster.csv" was obtained by inputting the file davis_data/compound_cids.txt into
+# the PubChem server at https://pubchem.ncbi.nlm.nih.gov/assay/assay.cgi?p=clustering.
+compound_sim = read.csv(paste(davis_dir, "tanimoto_cluster.csv", sep=""))
 compound_ids_sim = compound_sim[,1]
 compound_sim = compound_sim[,c(-1,-ncol(compound_sim))]
 
@@ -89,6 +91,7 @@ dim(compound_info)[1]
 dim(target_info)[1]
 dim(metz_quadruplet)[1]/(dim(compound_info)[1]*dim(target_info)[1])
 
+# The file tanimoto_cluster.csv was obtained analogously to the davis data.
 compound_sim = read.csv(paste(metz_dir,"tanimoto_cluster.csv", sep=""))
 compound_ids_sim = compound_sim[,1]
 compound_sim = compound_sim[,c(-1,-ncol(compound_sim))]
@@ -161,21 +164,29 @@ kiba_dir = "./KIBA_data/"
 kiba_quadruplet = read.csv(paste(kiba_dir, "triplet_split.csv", sep=""))
 compound_info = read.csv(paste(kiba_dir, "drug_info.csv", sep=""))
 target_info = read.csv(paste(kiba_dir, "prot_info.csv", sep=""))
+chembl_to_cid = read.delim(paste(kiba_dir, "chembl_to_cids.txt", sep=""), header=F)
+compound_IDs = chembl_to_cid[match(compound_info[, 1], chembl_to_cid[,1]), 2]
 
 ## number of drugs and targets and density now:
 dim(compound_info)[1]
 dim(target_info)[1]
 dim(kiba_quadruplet)[1]/(dim(compound_info)[1]*dim(target_info)[1])
 
+## Similar to davis and metz dataset, but this time we input compound_cids.txt into
+# https://pubchem.ncbi.nlm.nih.gov/score_matrix/score_matrix.cgi
+# download the clustering result and name it tanimoto_cluster.csv. The reason we do not use
+# the url used for davis and metz dataset is that, that URL will not calculate the similarity between
+# some compounds in KIBA dataset, and it would be phased out in Nov 1, 2018.
 compound_sim = read.csv(paste(kiba_dir,"tanimoto_cluster.csv", sep=""))
 compound_ids_sim = compound_sim[,1]
-compound_sim = compound_sim[,c(-1,-ncol(compound_sim))]
-
-temp = match(compound_info[,1], compound_ids_sim)
+compound_sim = compound_sim[, -1]
+#compound_sim2 = compound_sim/100.0
+temp = match(compound_IDs, compound_ids_sim)
 ## this is our drug sim mat. It is basically a rearrangement of the original matrix, namely compound_sim.
 # It is rearranged according to the vector cids. Say, drug_sim_mat[1,1] correponds to cids[1]. The cids
 # are PubChem CIDs.
 drug_sim_mat = as.matrix(compound_sim[temp, temp])
+drug_sim_mat = drug_sim_mat/100.0
 
 save(drug_sim_mat, file="kiba_drug_sim.rda")
 
