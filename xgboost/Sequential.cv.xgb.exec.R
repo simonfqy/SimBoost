@@ -15,6 +15,10 @@ rmse.fun = function(preds, label) {
   sqrt(mean((preds - label)^2))
 }
 
+r_squared = function(preds, label) {
+  1 - (sum((label-preds)^2)/sum((label-mean(label))^2))
+}
+
 # Davis
 
 # Load original data
@@ -78,10 +82,12 @@ auc = rep(0,L)
 aupr = rep(0,L)
 ci = rep(0,L)
 rmse = rep(0,L)
+r_squares = rep(0, L)
 for (i in 1:L) {
   cat(i,'\n')
   res = read.table(paste0('davis_',i,'_cont.txt'))
   rmse[i] = rmse.fun(res[,1],res[,2])
+  r_squares[i] = r_squared(res[,1],res[,2])
   # res_auc = system(paste0('python ../evaluation/evaluate_AUC_complete.py davis_',i,'_bin.txt'), intern = TRUE)
   # auc[i] = parse.mid(res_auc)
   # res_aupr = system(paste0('python ../evaluation/evaluate_AUPR_complete.py davis_',i,'_bin.txt'), intern = TRUE)
@@ -151,10 +157,12 @@ auc = rep(0,L)
 aupr = rep(0,L)
 rmse = rep(0,L)
 ci = rep(0,L)
+r_squares = rep(0, L)
 for (i in 1:L) {
   cat(i,'\n')
   res = read.table(paste0('metz_',i,'_cont.txt'))
   rmse[i] = rmse.fun(res[,1],res[,2])
+  r_squares[i] = r_squared(res[,1],res[,2])
   # res_auc = system(paste0('python ../evaluation/evaluate_AUC_complete.py metz_',i,'_bin.txt'), intern = TRUE)
   # auc[i] = parse.mid(res_auc)
   # res_aupr = system(paste0('python ../evaluation/evaluate_AUPR_complete.py metz_',i,'_bin.txt'), intern = TRUE)
@@ -227,10 +235,12 @@ auc = rep(0,L)
 aupr = rep(0,L)
 rmse = rep(0,L)
 ci = rep(0,L)
+r_squares = rep(0,L)
 for (i in 1:L) {
   cat(i,'\n')
   res = read.table(paste0('kiba_',i,'_cont.txt'))
   rmse[i] = rmse.fun(res[,1],res[,2])
+  r_squares[i] = r_squared(res[,1],res[,2])
   # res_auc = system(paste0('python ../evaluation/evaluate_AUC_complete.py kiba_',i,'_bin.txt'), intern = TRUE)
   # auc[i] = parse.mid(res_auc)
   # res_aupr = system(paste0('python ../evaluation/evaluate_AUPR_complete.py kiba_',i,'_bin.txt'), intern = TRUE)
