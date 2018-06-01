@@ -211,13 +211,97 @@ get.cv.fold = function(triplet, nfold) {
   return(cv.folds)
 }
 
-sequential.cv.feature = function(triplet, d.sim, t.sim, latent.dim,
+get.cv.fold.quad = function(quadruplet, nfold) {
+  n = nrow(quadruplet)
+  train.fold = vector(nfold, mode='list')
+  test.fold = vector(nfold, mode='list')
+  label = quadruplet[, 4]
+  
+  for (i in 1:nfold) {
+    test.fold[[i]] = which(label == i)
+  }
+  
+  for (i in 1:nfold) {
+    train.fold[[i]] = setdiff(1:n, test.fold[[i]])
+  }
+  cv.folds = vector(nfold, mode='list')
+  for (i in 1:nfold) {
+    cv.folds[[i]] = list(train.fold[[i]], test.fold[[i]])
+  }
+  return(cv.folds)
+}
+
+# The original implementation.
+sequential.cv.feature.old = function(triplet, d.sim, t.sim, latent.dim,
                                  nfold, k, threshold, threshold.identity) {
   n = nrow(triplet)
   cv.folds = get.cv.fold(triplet, nfold)
   cv.models = vector(nfold, mode='list')
   cv.preds = rep(0, n)
   cv.data = vector(nfold, mode='list')
+  # no_cores = 5
+  # registerDoParallel(makeCluster(no_cores))
+  # cv.data = foreach(i = 1:nfold) %dopar% {
+  #   source('Sequential.cv.R') 
+  #   #sink("temporary.txt", append=T, type = "output")
+  #   cat(i,'\n')
+  #   train.fold = cv.folds[[i]][[1]] # $train.fold
+  #   test.fold = cv.folds[[i]][[2]] # $test.fold
+  #   train.triplet = triplet[train.fold,]
+  #   test.triplet = triplet[test.fold,]
+  #   time_feature_start = Sys.time()
+  #   features = feature.construction(train.triplet, test.triplet, 
+  #                                   d.sim, t.sim, k, latent.dim,
+  #                                   threshold, threshold.identity)
+  #   time_feature_end = Sys.time()
+  #   time_diff = as.double(difftime(time_feature_end, time_feature_start, units="secs"))
+  #   cat(paste0("Time used in feature.construction(): ", time_diff,
+  #     ' seconds', '\n'))
+  #   #sink()
+  #   train.x = features[[1]]
+  #   train.y = features[[3]]
+    
+  #   test.x = features[[2]]
+  #   test.y = features[[4]]
+  #   #cv.data[[i]] = list(train.x, test.x, train.y, test.y)
+  #   list(train.x, test.x, train.y, test.y)
+  # }
+  # stopImplicitCluster()
+  # registerDoSEQ()
+  for (i in 1:nfold) {
+    #sink("temporary.txt", append=T, type = "output")
+    cat(i,'\n')
+    train.fold = cv.folds[[i]][[1]] # $train.fold
+    test.fold = cv.folds[[i]][[2]] # $test.fold
+    train.triplet = triplet[train.fold,]
+    test.triplet = triplet[test.fold,]
+    time_feature_start = Sys.time()
+    features = feature.construction(train.triplet, test.triplet, 
+                                    d.sim, t.sim, k, latent.dim,
+                                    threshold, threshold.identity)
+    time_feature_end = Sys.time()
+    time_diff = as.double(difftime(time_feature_end, time_feature_start, units="secs"))
+    cat(paste0("Time used in feature.construction(): ", time_diff,
+      ' seconds', '\n'))
+    #sink()
+    train.x = features[[1]]
+    train.y = features[[3]]
+    
+    test.x = features[[2]]
+    test.y = features[[4]]
+    cv.data[[i]] = list(train.x, test.x, train.y, test.y)
+  }
+  return(list(cv.data, cv.folds))
+}
+
+sequential.cv.feature = function(quadruplet, d.sim, t.sim, latent.dim,
+                                 nfold, k, threshold, threshold.identity) {
+  n = nrow(quadruplet)
+  cv.folds = get.cv.fold.quad(quadruplet, nfold)
+  cv.models = vector(nfold, mode='list')
+  cv.preds = rep(0, n)
+  cv.data = vector(nfold, mode='list')
+  triplet = quadruplet[,1:3]
   no_cores = 5
   registerDoParallel(makeCluster(no_cores))
   cv.data = foreach(i = 1:nfold) %dopar% {
@@ -248,7 +332,6 @@ sequential.cv.feature = function(triplet, d.sim, t.sim, latent.dim,
   stopImplicitCluster()
   registerDoSEQ()
   # for (i in 1:nfold) {
-  #   source('Sequential.cv.R') 
   #   #sink("temporary.txt", append=T, type = "output")
   #   cat(i,'\n')
   #   train.fold = cv.folds[[i]][[1]] # $train.fold
@@ -270,7 +353,6 @@ sequential.cv.feature = function(triplet, d.sim, t.sim, latent.dim,
   #   test.x = features[[2]]
   #   test.y = features[[4]]
   #   cv.data[[i]] = list(train.x, test.x, train.y, test.y)
-  #   #list(train.x, test.x, train.y, test.y)
   # }
   return(list(cv.data, cv.folds))
 }
