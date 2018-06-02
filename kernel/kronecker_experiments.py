@@ -90,13 +90,13 @@ def nested_nfold_1_2_3_setting_with_imputation(XD, XT, Y, label_row_inds, label_
             val_fold = folds[val_foldind]
             val_sets.append(val_fold)
             train_sets.append(sorted(list(otherdatainds - set(val_fold))))
-        bestparamind, bestperf, all_predictions_not_needed = general_nfold_cv_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, measure, train_sets, val_sets)
+        bestparamind, _, _ = general_nfold_cv_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, measure, train_sets, val_sets)
         bestparaminds.append(bestparamind)
         outer_train_sets.append(sorted(list(otherdatainds)))
         print
         print 'Outer fold', test_foldind, 'done'
         print
-    bestparamind, bestperf, all_predictions = general_nfold_cv_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, measure, outer_train_sets, folds)
+    _, _, all_predictions = general_nfold_cv_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, measure, outer_train_sets, folds)
     finalpreds = np.zeros(Y[label_row_inds, label_col_inds].shape)
     avgperf = 0.
     for test_foldind in range(len(folds)):
@@ -201,6 +201,7 @@ def general_nfold_cv_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, 
         XD_train = XD[rows]
         XT_train = XT[cols]
         Y_train = Y_train[np.ix_(rows, cols)]
+        pdb.set_trace()
         params["xmatrix1"] = XD_train
         params["xmatrix2"] = XT_train
         params["train_labels"] = Y_train
@@ -267,6 +268,7 @@ def experiment(XD, XT, Y, perfmeasure, foldcount=5):
     #The regularization parameter is selected from the range 2**-10 ... 2**40
     
     label_row_inds, label_col_inds = np.where(np.isnan(Y)==False)
+    #pdb.set_trace()
     #setting 1 folds
     S1_folds = get_random_folds(len(label_row_inds), foldcount)
     
@@ -290,19 +292,28 @@ def experiment(XD, XT, Y, perfmeasure, foldcount=5):
     
     print "setting 4"
     #In setting 4 a 3x3 fold split is automatically generated inside the called function
-    S4_avgperf = nested_nfold_setting_4_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, perfmeasure)
+    #S4_avgperf = nested_nfold_setting_4_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, perfmeasure)
     
     print "Setting 1 Nested CV performance", S1_avgperf
     print "Setting 2 Nested CV performance", S2_avgperf
     print "Setting 3 Nested CV performance", S3_avgperf
-    print "Setting 4 Nested CV performance", S4_avgperf
+    #print "Setting 4 Nested CV performance", S4_avgperf
 
 #Some examples on how the program can be run   
 
 def load_davis():
-    Y = np.loadtxt("drug-target_interaction_affinities_Kd__Davis_et_al.2011.txt")
-    XD = np.loadtxt("drug-drug_similarities_2D.txt")
-    XT = np.loadtxt("target-target_similarities_WS.txt")    
+
+    # TODO: I need to recode the program for KronRLS in such a way that it takes csv files as
+    # input and adopts the CV folds already splitted in the input files. To do so, I have to
+    # store the R matrices into csv files, and reformat the triplet_split.csv files into an
+    # interaction matrix stored in csv format.
+    data_dir = "./davis_data/"
+    fname = data_dir + "drug_sim_mat.csv"
+    XD = np.loadtxt(fname, delimiter=',', skiprows=1)
+    fname = data_dir + "target_sim_mat.csv"
+    XT = np.loadtxt(fname, delimiter=',', skiprows=1)
+    fname = data_dir + "interaction_mat.csv"
+    Y = np.loadtxt(fname, delimiter=',', skiprows=1)
     return XD, XT, Y
     
 def load_metz():
@@ -382,10 +393,10 @@ def metz_classification_aupr():
     experiment(XD, XT, Y, perfmeasure)
 
 if __name__=="__main__":
-    davis_regression()
+    #davis_regression()
     #davis_classification_cindex()
     #davis_classification_aupr()
-    #metz_regression()
+    metz_regression()
     #metz_classification_cindex()
     #metz_classification_aupr()
 
