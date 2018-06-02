@@ -307,7 +307,7 @@ def load_davis():
     # input and adopts the CV folds already splitted in the input files. To do so, I have to
     # store the R matrices into csv files, and reformat the triplet_split.csv files into an
     # interaction matrix stored in csv format.
-    data_dir = "./davis_data/"
+    data_dir = "../data/davis_data/"
     fname = data_dir + "drug_sim_mat.csv"
     XD = np.loadtxt(fname, delimiter=',', skiprows=1)
     fname = data_dir + "target_sim_mat.csv"
