@@ -62,7 +62,7 @@ for (i in 1:L) {
   out_file_name = '../data/sequential.cv.xgb.mf.davis.'
   out_file_name = paste0(out_file_name, i, '.rda')
   davis[[i]] = sequential.mean.cv(file_name, out_file_name,
-                                  cutoff = 7, params = params, nrounds = 500, seed = i)
+                                  cutoff = 7, params = params, nrounds = 1000, seed = i)
   res = davis[[i]]
   res = cbind(res[,1],res[,2])
   auc(res[,1],res[,2],7)
@@ -78,7 +78,7 @@ save(davis, file='../data/xgb.davis.rda')
 
 sapply(1:L, function(i) auc(davis[[i]][,1],davis[[i]][,2], 7))
 
-auc = rep(0,L)
+auc_list = rep(0,L)
 aupr = rep(0,L)
 ci = rep(0,L)
 rmse = rep(0,L)
@@ -89,7 +89,7 @@ for (i in 1:L) {
   rmse[i] = rmse.fun(res[,1],res[,2])
   r_squares[i] = r_squared(res[,1],res[,2])
   # res_auc = system(paste0('python ../evaluation/evaluate_AUC_complete.py davis_',i,'_bin.txt'), intern = TRUE)
-  # auc[i] = parse.mid(res_auc)
+  # auc_list[i] = parse.mid(res_auc)
   # res_aupr = system(paste0('python ../evaluation/evaluate_AUPR_complete.py davis_',i,'_bin.txt'), intern = TRUE)
   # aupr[i] = parse.mid(res_aupr)
   res_ci = system(paste0('python ../evaluation/evaluate_CI_complete.py davis_',i,'_cont.txt'), intern = TRUE)
@@ -97,8 +97,8 @@ for (i in 1:L) {
   #ci[i] = parse.mid(res_ci)
 }
 
-davis.mean = c(mean(rmse), mean(auc), mean(aupr), mean(ci))
-davis.sd = c(sd(rmse), sd(auc), sd(aupr), sd(ci))
+davis.mean = c(mean(rmse), mean(auc_list), mean(aupr), mean(ci))
+davis.sd = c(sd(rmse), sd(auc_list), sd(aupr), sd(ci))
 save(davis.mean, davis.sd, file='davis.table.rda')
 
 # Metz
@@ -139,7 +139,7 @@ for (i in 1:L) {
   out_file_name = '../data/sequential.cv.xgb.mf.metz.'
   out_file_name = paste0(out_file_name, i, '.rda')
   metz[[i]] = sequential.mean.cv(file_name, out_file_name,cutoff = 7.6, 
-                                 params = params, nrounds = 500, seed = i)
+                                 params = params, nrounds = 1000, seed = i)
   res = metz[[i]]
   res = cbind(res[,1],res[,2])
   auc(res[,1],res[,2],7.6)
@@ -153,7 +153,7 @@ for (i in 1:L) {
 
 save(metz, file='../data/xgb.metz.rda')
 
-auc = rep(0,L)
+auc_list = rep(0,L)
 aupr = rep(0,L)
 rmse = rep(0,L)
 ci = rep(0,L)
@@ -164,7 +164,7 @@ for (i in 1:L) {
   rmse[i] = rmse.fun(res[,1],res[,2])
   r_squares[i] = r_squared(res[,1],res[,2])
   # res_auc = system(paste0('python ../evaluation/evaluate_AUC_complete.py metz_',i,'_bin.txt'), intern = TRUE)
-  # auc[i] = parse.mid(res_auc)
+  # auc_list[i] = parse.mid(res_auc)
   # res_aupr = system(paste0('python ../evaluation/evaluate_AUPR_complete.py metz_',i,'_bin.txt'), intern = TRUE)
   # aupr[i] = parse.mid(res_aupr)
   res_ci = system(paste0('python ../evaluation/evaluate_CI_complete.py metz_',i,'_cont.txt'), intern = TRUE)
@@ -172,8 +172,8 @@ for (i in 1:L) {
   #ci[i] = parse.mid(res_ci)
 }
 
-metz.mean = c(mean(rmse), mean(auc), mean(aupr), mean(ci))
-metz.sd = c(sd(rmse), sd(auc), sd(aupr), sd(ci))
+metz.mean = c(mean(rmse), mean(auc_list), mean(aupr), mean(ci))
+metz.sd = c(sd(rmse), sd(auc_list), sd(aupr), sd(ci))
 save(metz.mean, metz.sd, file='metz.table.rda')
 
 # Kiba
@@ -217,7 +217,7 @@ for (i in 1:L) {
   out_file_name = '../data/sequential.cv.xgb.mf.kiba.'
   out_file_name = paste0(out_file_name, i, '.rda')
   kiba[[i]] = sequential.mean.cv(file_name, out_file_name, cutoff = 3.0, 
-                                 params = params, nrounds = 1000, seed = i)
+                                 params = params, nrounds = 1500, seed = i)
   res = kiba[[i]]
   res = cbind(res[,1],res[,2])
   auc(res[,1],res[,2],4.5)
@@ -231,7 +231,7 @@ for (i in 1:L) {
 
 save(kiba, file='../data/xgb.kiba.rda')
 
-auc = rep(0,L)
+auc_list = rep(0,L)
 aupr = rep(0,L)
 rmse = rep(0,L)
 ci = rep(0,L)
@@ -242,7 +242,7 @@ for (i in 1:L) {
   rmse[i] = rmse.fun(res[,1],res[,2])
   r_squares[i] = r_squared(res[,1],res[,2])
   # res_auc = system(paste0('python ../evaluation/evaluate_AUC_complete.py kiba_',i,'_bin.txt'), intern = TRUE)
-  # auc[i] = parse.mid(res_auc)
+  # auc_list[i] = parse.mid(res_auc)
   # res_aupr = system(paste0('python ../evaluation/evaluate_AUPR_complete.py kiba_',i,'_bin.txt'), intern = TRUE)
   # aupr[i] = parse.mid(res_aupr)
   res_ci = system(paste0('python ../evaluation/evaluate_CI_complete.py kiba_',i,'_cont.txt'), intern = TRUE)
@@ -250,8 +250,8 @@ for (i in 1:L) {
   #ci[i] = parse.mid(res_ci)
 }
 
-kiba.mean = c(mean(rmse), mean(auc), mean(aupr), mean(ci))
-kiba.sd = c(sd(rmse), sd(auc), sd(aupr), sd(ci))
+kiba.mean = c(mean(rmse), mean(auc_list), mean(aupr), mean(ci))
+kiba.sd = c(sd(rmse), sd(auc_list), sd(aupr), sd(ci))
 save(kiba.mean, kiba.sd, file='kiba.table.rda')
 
 
