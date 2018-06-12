@@ -36,21 +36,24 @@ def get_folds(fold_split_file_nm, foldcount, tsize):
   assert len(foldunion & set(range(tsize))) == tsize    
   return folds
 
-def get_warm_folds(tsize, foldcount, data_dir="../data/davis_data", additional_suffix = ""):
-  additional_suffix = "_warm_filtered" + additional_suffix
+def get_warm_folds(tsize, foldcount, data_dir="../data/davis_data", additional_suffix = "",
+  featurizer_suffix = ""):
+  additional_suffix = featurizer_suffix + "_warm_filtered" + additional_suffix
   fold_split_file = data_dir + "triplet_split" + additional_suffix + ".csv"
   return get_folds(fold_split_file, foldcount, tsize)  
 
-def get_drugwise_folds(label_row_inds, foldcount, data_dir="../data/davis_data", additional_suffix = ""):
+def get_drugwise_folds(label_row_inds, foldcount, data_dir="../data/davis_data", 
+  additional_suffix = "", featurizer_suffix = ""):
   assert len(np.array(label_row_inds).shape) == 1, 'label_row_inds should be one dimensional array'
-  additional_suffix = "_cold_drug_filtered" + additional_suffix
+  additional_suffix = featurizer_suffix + "_cold_drug_filtered" + additional_suffix
   fold_split_file = data_dir + "triplet_split" + additional_suffix + ".csv"
   return get_folds(fold_split_file, foldcount, len(label_row_inds))  
 
 
-def get_targetwise_folds(label_col_inds, foldcount, data_dir="../data/davis_data", additional_suffix = ""):
+def get_targetwise_folds(label_col_inds, foldcount, data_dir="../data/davis_data", 
+  additional_suffix = "", featurizer_suffix = ""):
   assert len(np.array(label_col_inds).shape) == 1, 'label_col_inds should be one dimensional array'
-  additional_suffix = "_cold_target_filtered" + additional_suffix
+  additional_suffix = featurizer_suffix + "_cold_target_filtered" + additional_suffix
   fold_split_file = data_dir + "triplet_split" + additional_suffix + ".csv"
   return get_folds(fold_split_file, foldcount, len(label_col_inds))  
 
@@ -235,7 +238,7 @@ def get_aupr(Y, P):
 
   
 def experiment(XD, XT, Y, perfmeasure, foldcount=5, data_dir="../data/davis_data", split_warm=False, 
-  cold_drug=False, cold_target=False, additional_suffix = ""):
+  cold_drug=False, cold_target=False, additional_suffix = "", featurizer_suffix = ""):
   #Runs nested cross-validation in settings 1-4, automatically selecting regularization parameter
   #and computing the prediction performance using supplied performance measure.
   #Input
@@ -256,23 +259,29 @@ def experiment(XD, XT, Y, perfmeasure, foldcount=5, data_dir="../data/davis_data
   S2_avgperf = Invalid_val
   S3_avgperf = Invalid_val
   if split_warm:
-    S1_folds = get_warm_folds(len(label_row_inds), foldcount, data_dir=data_dir, additional_suffix=additional_suffix)
+    S1_folds = get_warm_folds(len(label_row_inds), foldcount, data_dir=data_dir, 
+      additional_suffix=additional_suffix, featurizer_suffix=featurizer_suffix)
     print "setting 1"
-    S1_avgperf = nested_nfold_1_2_3_setting_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, perfmeasure, S1_folds)
+    S1_avgperf = nested_nfold_1_2_3_setting_with_imputation(XD, XT, Y, label_row_inds, 
+      label_col_inds, perfmeasure, S1_folds)
 
   if cold_drug:
     drugcount = XD.shape[0]
     #setting 2 folds
-    S2_folds = get_drugwise_folds(label_row_inds, foldcount, data_dir=data_dir, additional_suffix=additional_suffix)
+    S2_folds = get_drugwise_folds(label_row_inds, foldcount, data_dir=data_dir, 
+      additional_suffix=additional_suffix, featurizer_suffix=featurizer_suffix)
     print "setting 2"
-    S2_avgperf = nested_nfold_1_2_3_setting_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, perfmeasure, S2_folds)
+    S2_avgperf = nested_nfold_1_2_3_setting_with_imputation(XD, XT, Y, label_row_inds, 
+      label_col_inds, perfmeasure, S2_folds)
 
   if cold_target:
     targetcount = XT.shape[0]
     #setting 3 folds
-    S3_folds = get_targetwise_folds(label_col_inds, foldcount, data_dir=data_dir, additional_suffix=additional_suffix)        
+    S3_folds = get_targetwise_folds(label_col_inds, foldcount, data_dir=data_dir, 
+      additional_suffix=additional_suffix, featurizer_suffix=featurizer_suffix)        
     print "setting 3"
-    S3_avgperf = nested_nfold_1_2_3_setting_with_imputation(XD, XT, Y, label_row_inds, label_col_inds, perfmeasure, S3_folds)
+    S3_avgperf = nested_nfold_1_2_3_setting_with_imputation(XD, XT, Y, label_row_inds, 
+      label_col_inds, perfmeasure, S3_folds)
   
   #print "setting 4"
   #In setting 4 a 3x3 fold split is automatically generated inside the called function
@@ -307,7 +316,7 @@ def load_dataset(data_dir):
 #   Y = np.loadtxt(fname, delimiter=',', skiprows=0)
 #   return XD, XT, Y 
 
-def davis_regression():
+def davis_regression(additional_suffix="", featurizer_suffix=""):
   #Run the experiment on davis data with real-valued outputs
   #and concordance index as performance measure
   #concordance index is a value between 0 and 1, 0.5 random baseline
@@ -319,7 +328,7 @@ def davis_regression():
   data_dir = "../data/davis_data/"
   XD, XT, Y = load_dataset(data_dir)
   experiment(XD, XT, Y, perfmeasure, data_dir=data_dir, split_warm=True,
-    cold_target=True, cold_drug=True, additional_suffix="")
+    cold_target=True, cold_drug=True, additional_suffix="", featurizer_suffix=featurizer_suffix)
   
 def davis_classification_cindex():
   #Run the experiment on davis data with binarized outputs
@@ -342,7 +351,7 @@ def davis_classification_aupr():
   Y_binary = np.where(Y<=thval, 1., -1.)
   experiment(XD, XT, Y_binary, perfmeasure)
   
-def metz_regression():
+def metz_regression(additional_suffix="", featurizer_suffix=""):
   #Run the experiment on metz data with real-valued outputs
   #and concordance index as performance measure
   #perfmeasure = cindex
@@ -353,7 +362,7 @@ def metz_regression():
   #regression with real values
   XD, XT, Y = load_dataset(data_dir)
   experiment(XD, XT, Y, perfmeasure, data_dir=data_dir, split_warm=True,
-    cold_target=True, cold_drug=True, additional_suffix="")
+    cold_target=True, cold_drug=True, additional_suffix="", featurizer_suffix=featurizer_suffix)
   
 def metz_classification_cindex():
   #Run the experiment on metz data with binarized outputs
@@ -384,20 +393,21 @@ def metz_classification_aupr():
   Y[label_row_inds, label_col_inds] = np.where(Y[label_row_inds, label_col_inds]>=thval, 1., -1.)
   experiment(XD, XT, Y, perfmeasure)
 
-def kiba_regression():
+def kiba_regression(additional_suffix="", featurizer_suffix=""):
   #perfmeasure = cindex
   #perfmeasure = neg_rmse
   perfmeasure = r_square
   data_dir = "../data/KIBA_data/"
   XD, XT, Y = load_dataset(data_dir)
   experiment(XD, XT, Y, perfmeasure, data_dir=data_dir, split_warm=True,
-    cold_target=True, cold_drug=True, additional_suffix="")
+    cold_target=True, cold_drug=True, additional_suffix="", featurizer_suffix=featurizer_suffix)
 
 if __name__=="__main__":
-  #davis_regression()
+  featurizer_suffix="_gc"
+  davis_regression()
   #davis_classification_cindex()
   #davis_classification_aupr()
-  metz_regression()
+  #metz_regression()
   #metz_classification_cindex()
   #metz_classification_aupr()
   #kiba_regression()
