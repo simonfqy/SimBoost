@@ -316,7 +316,7 @@ def load_dataset(data_dir):
 #   Y = np.loadtxt(fname, delimiter=',', skiprows=0)
 #   return XD, XT, Y 
 
-def davis_regression(additional_suffix="", featurizer_suffix=""):
+def davis_regression(additional_suffix="", featurizer_suffix="", perfmeasure=cindex):
   #Run the experiment on davis data with real-valued outputs
   #and concordance index as performance measure
   #concordance index is a value between 0 and 1, 0.5 random baseline
@@ -324,11 +324,11 @@ def davis_regression(additional_suffix="", featurizer_suffix=""):
   #the same value for binary Y-values (e.g. +1,-1)
   #perfmeasure = cindex
   #perfmeasure = neg_rmse
-  perfmeasure = r_square
+  #perfmeasure = r_square
   data_dir = "../data/davis_data/"
   XD, XT, Y = load_dataset(data_dir)
-  experiment(XD, XT, Y, perfmeasure, data_dir=data_dir, split_warm=True,
-    cold_target=True, cold_drug=True, additional_suffix="", featurizer_suffix=featurizer_suffix)
+  experiment(XD, XT, Y, perfmeasure, data_dir=data_dir, split_warm=True, cold_target=True, 
+    cold_drug=True, additional_suffix=additional_suffix, featurizer_suffix=featurizer_suffix)
   
 def davis_classification_cindex():
   #Run the experiment on davis data with binarized outputs
@@ -351,18 +351,18 @@ def davis_classification_aupr():
   Y_binary = np.where(Y<=thval, 1., -1.)
   experiment(XD, XT, Y_binary, perfmeasure)
   
-def metz_regression(additional_suffix="", featurizer_suffix=""):
+def metz_regression(additional_suffix="", featurizer_suffix="", perfmeasure=cindex):
   #Run the experiment on metz data with real-valued outputs
   #and concordance index as performance measure
   #perfmeasure = cindex
   #perfmeasure = neg_rmse
-  perfmeasure = r_square
+  #perfmeasure = r_square
   data_dir = "../data/metz_data/"
   #Metz data is more complicated, since it has some Y-values missing
   #regression with real values
   XD, XT, Y = load_dataset(data_dir)
-  experiment(XD, XT, Y, perfmeasure, data_dir=data_dir, split_warm=True,
-    cold_target=True, cold_drug=True, additional_suffix="", featurizer_suffix=featurizer_suffix)
+  experiment(XD, XT, Y, perfmeasure, data_dir=data_dir, split_warm=True, cold_target=True, 
+    cold_drug=True, additional_suffix=additional_suffix, featurizer_suffix=featurizer_suffix)
   
 def metz_classification_cindex():
   #Run the experiment on metz data with binarized outputs
@@ -393,22 +393,28 @@ def metz_classification_aupr():
   Y[label_row_inds, label_col_inds] = np.where(Y[label_row_inds, label_col_inds]>=thval, 1., -1.)
   experiment(XD, XT, Y, perfmeasure)
 
-def kiba_regression(additional_suffix="", featurizer_suffix=""):
+def kiba_regression(additional_suffix="", featurizer_suffix="", perfmeasure=cindex):
   #perfmeasure = cindex
   #perfmeasure = neg_rmse
-  perfmeasure = r_square
+  #perfmeasure = r_square
   data_dir = "../data/KIBA_data/"
   XD, XT, Y = load_dataset(data_dir)
-  experiment(XD, XT, Y, perfmeasure, data_dir=data_dir, split_warm=True,
-    cold_target=True, cold_drug=True, additional_suffix="", featurizer_suffix=featurizer_suffix)
+  experiment(XD, XT, Y, perfmeasure, data_dir=data_dir, split_warm=True, cold_target=True, 
+    cold_drug=True, additional_suffix=additional_suffix, featurizer_suffix=featurizer_suffix)
 
 if __name__=="__main__":
   featurizer_suffix="_gc"
-  davis_regression()
+  #featurizer_suffix = ""
+  additional_suffix = "_2"
+  perfmeasure = r_square
+  # davis_regression(featurizer_suffix=featurizer_suffix, additional_suffix=additional_suffix,
+  #   perfmeasure=perfmeasure)
   #davis_classification_cindex()
   #davis_classification_aupr()
-  #metz_regression()
+  metz_regression(featurizer_suffix=featurizer_suffix, additional_suffix=additional_suffix,
+    perfmeasure=perfmeasure)
   #metz_classification_cindex()
   #metz_classification_aupr()
-  #kiba_regression()
+  #kiba_regression(featurizer_suffix=featurizer_suffix, additional_suffix=additional_suffix,
+  #  perfmeasure=perfmeasure)
 
