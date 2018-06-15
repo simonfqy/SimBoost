@@ -1,4 +1,4 @@
-suffix = "_gc_warm_filtered"
+suffix = "_gc_warm_filtered_3"
 davis_dir = "../data/davis_data/"
 split_only = TRUE
 
